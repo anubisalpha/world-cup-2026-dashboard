@@ -1,0 +1,31 @@
+﻿# Node modules (if we add any)
+node_modules/
+.npm
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build output (if we add any build process)
+dist/
+build/
+
+# Temporary files
+*.tmp
+.cache/
