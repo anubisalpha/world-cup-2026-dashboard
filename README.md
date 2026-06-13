@@ -193,3 +193,9 @@ For questions, feedback, or customization requests for other tournaments, please
 ---
 
 **Ready to track the 2026 World Cup?** Open `world-cup-2026.html` in your browser and start entering match results!
+
+---
+
+## ☕ By the way...
+
+If you find this dashboard useful, consider [buying me a coffee](https://buymeacoffee.com/anubisalpha). No pressure at all — but if you'd like to support the project, it's genuinely appreciated.
