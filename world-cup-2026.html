@@ -624,6 +624,7 @@
                     <button onclick="exportResults()" style="padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 500;">📥 Export JSON</button>
                     <button onclick="document.getElementById('import-file').click()" style="padding: 8px 16px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 500;">📤 Import JSON</button>
                     <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importResults(event)">
+                    <button id="online-import-btn" onclick="importOnline()" style="padding: 8px 16px; background: #FF9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 500;">🌐 Import Online</button>
                 </div>
             </div>
 
@@ -1069,6 +1070,11 @@
             // Show selected view
             document.getElementById(tabId + '-view').style.display = 'block';
 
+            // Scroll to today when switching to group stages
+            if (tabId === 'group-stages') {
+                setTimeout(scrollToTodaysMatches, 100);
+            }
+
             // Render third-place and knockout when knockout tab is shown
             if (tabId === 'knockout') {
                 renderThirdPlace();
@@ -1102,10 +1108,17 @@
             container.innerHTML = dates.map(date => {
                 const isToday = date === today;
                 const isSelected = date === selectedDate;
-                return `<button class="date-btn ${isSelected ? 'active' : ''}" onclick="selectDate('${date}')" title="${formatDateFull(date)}">
+                return `<button class="date-btn ${isSelected ? 'active' : ''}" data-date="${date}" onclick="selectDate('${date}')" title="${formatDateFull(date)}">
                     ${isToday ? '📅 ' : ''}${formatDate(date)}
                 </button>`;
             }).join('');
+        }
+
+        function scrollToTodaysMatches() {
+            const todayBtn = document.querySelector(`.date-btn[data-date="${today}"]`);
+            if (todayBtn) {
+                todayBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
 
         function renderMatches() {
@@ -1682,6 +1695,45 @@
             renderKnockout();
         }
 
+        async function importOnline() {
+            const btn = document.getElementById('online-import-btn');
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Fetching...';
+            btn.disabled = true;
+
+            try {
+                const apiUrl = 'https://api.github.com/repos/anubisalpha/world-cup-2026-dashboard/contents/exports';
+                const dirResponse = await fetch(apiUrl);
+                if (!dirResponse.ok) throw new Error('Could not reach GitHub');
+
+                const files = await dirResponse.json();
+                const jsonFiles = files.filter(f => f.name.endsWith('.json')).sort((a, b) => b.name.localeCompare(a.name));
+                if (jsonFiles.length === 0) throw new Error('No export files found');
+
+                const latest = jsonFiles[0];
+                const rawUrl = latest.download_url;
+                const dataResponse = await fetch(rawUrl);
+                if (!dataResponse.ok) throw new Error('Could not download results file');
+
+                const imported = await dataResponse.json();
+                results = imported;
+                saveResults();
+                updateGroupStandings();
+                populateKnockoutMatches();
+                renderMatches();
+                renderGroups();
+                renderGroupResults();
+                renderThirdPlace();
+                renderKnockout();
+                alert(`Results imported from ${latest.name}`);
+            } catch (err) {
+                alert('Online import failed: ' + err.message);
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
         function exportResults() {
             const dataStr = JSON.stringify(results, null, 2);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
@@ -1730,6 +1782,11 @@
         renderGroupResults();
         renderThirdPlace();
         renderKnockout();
+
+        // Scroll to today's matches on initial load
+        if (!defaultToKnockout) {
+            setTimeout(scrollToTodaysMatches, 100);
+        }
 
         // Load default tab
         if (defaultToKnockout) {
