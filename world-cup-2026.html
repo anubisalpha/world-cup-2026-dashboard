@@ -1002,7 +1002,7 @@
             'Norway': 'https://api.fifa.com/api/v3/picture/flags-sq-4/NOR'
         };
 
-        const today = '2026-06-11';
+        const today = new Date().toISOString().slice(0, 10);
         const knockoutStartDate = '2026-06-29';
         let selectedDate = today;
         let selectedGroup = 'A';
