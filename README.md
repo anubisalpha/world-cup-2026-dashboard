@@ -10,6 +10,8 @@ This dashboard provides a complete tracking experience for the World Cup 2026, f
 
 ### 📊 Group Stage Management
 
+- **Scroll to Today**: The group stage view automatically scrolls to today's matches on load and when switching tabs
+
 - **Complete Schedule**: All 48 group stage matches pre-loaded with:
   - Exact match dates and times
   - Venue information and stadium details
@@ -76,10 +78,22 @@ This dashboard provides a complete tracking experience for the World Cup 2026, f
   - Seamlessly continue tracking from where you left off
   - Easy sharing of tournament state with friends
 
+- **Import Online**: One-click import of the latest results from GitHub:
+  - Fetches the most recent results export from the repository
+  - No need to manually download and import JSON files
+  - Keeps your scores up to date with a single button press
+
 - **Local Storage**: All data persists in your browser:
   - Automatic saving to browser localStorage
   - No internet connection needed to view or update results (after initial load)
   - Data survives browser refresh and restarts
+
+### 🔄 Auto-Update
+
+- **Version Detection**: The dashboard checks GitHub for newer versions on load
+- **Update Banner**: A visible notification appears in the header when an update is available
+- **Edition-Aware**: Automatically detects whether you're running the full or minified version and downloads the correct one
+- **Version Label**: Current version number always visible in the header for quick reference
 
 ### 📱 Responsive Design
 

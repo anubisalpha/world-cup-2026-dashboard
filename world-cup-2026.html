@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- wc2026-edition: full wc2026-version: 2 -->
+<!-- wc2026-edition: full wc2026-version: 3 wc2026-date: 2026-06-21 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1744,15 +1744,22 @@
             }
         }
 
+        function getMetaComment() {
+            return document.childNodes[1]?.textContent || '';
+        }
+
         function getLocalVersion() {
-            const comment = document.childNodes[1]?.textContent || '';
-            const match = comment.match(/wc2026-version:\s*(\d+)/);
+            const match = getMetaComment().match(/wc2026-version:\s*(\d+)/);
             return match ? parseInt(match[1]) : 0;
         }
 
+        function getBuildDate() {
+            const match = getMetaComment().match(/wc2026-date:\s*([\d-]+)/);
+            return match ? match[1] : '';
+        }
+
         function getEdition() {
-            const comment = document.childNodes[1]?.textContent || '';
-            return comment.includes('wc2026-edition: min') ? 'min' : 'full';
+            return getMetaComment().includes('wc2026-edition: min') ? 'min' : 'full';
         }
 
         async function checkForUpdate() {
@@ -1840,7 +1847,8 @@
         }
 
         // Initialize
-        document.getElementById('version-label').textContent = 'v' + getLocalVersion();
+        const buildDate = getBuildDate();
+        document.getElementById('version-label').textContent = 'v' + getLocalVersion() + (buildDate ? ' (' + buildDate + ')' : '');
         checkForUpdate();
         loadResults();
         updateGroupStandings();
