@@ -1,10 +1,16 @@
 <!DOCTYPE html>
+<!-- wc2026-edition: full wc2026-version: 2 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>World Cup 2026 Schedule</title>
     <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -562,7 +568,7 @@
                 <h1>World Cup 2026</h1>
                 <p>Live Match Schedule & Results</p>
                 <p style="font-size: 0.75em; color: #999; margin-top: 2px;">created by Marc Saunders and Claude.</p>
-                <p style="font-size: 0.7em; color: #bbb; margin-top: 0;"><a href="mailto:marc.anubis@gmail.com" style="color: #bbb; text-decoration: none;">marc.anubis@gmail.com</a></p>
+                <p style="font-size: 0.7em; color: #bbb; margin-top: 0;"><a href="mailto:marc.anubis@gmail.com" style="color: #bbb; text-decoration: none;">marc.anubis@gmail.com</a> · <span id="version-label" style="color: #bbb;"></span></p>
             </div>
             <div style="padding: 0 20px; border-left: 1px solid #eee;">
                 <div style="color: #1e3c72; font-weight: 600; font-size: 0.9em; margin-bottom: 8px;">✨ Features</div>
@@ -576,6 +582,10 @@
                     <div>✓ Stadium details</div>
                     <div>✓ Mobile responsive</div>
                 </div>
+            </div>
+            <div id="update-banner" style="display: none; padding: 10px 16px; background: #9C27B0; border-radius: 8px; text-align: center; cursor: pointer; animation: pulse 2s infinite;" onclick="updateApp()">
+                <div style="color: white; font-weight: 600; font-size: 0.85em;">🔄 Update Available</div>
+                <div style="color: rgba(255,255,255,0.8); font-size: 0.7em; margin-top: 2px;">Click to download</div>
             </div>
         </div>
 
@@ -1734,6 +1744,64 @@
             }
         }
 
+        function getLocalVersion() {
+            const comment = document.childNodes[1]?.textContent || '';
+            const match = comment.match(/wc2026-version:\s*(\d+)/);
+            return match ? parseInt(match[1]) : 0;
+        }
+
+        function getEdition() {
+            const comment = document.childNodes[1]?.textContent || '';
+            return comment.includes('wc2026-edition: min') ? 'min' : 'full';
+        }
+
+        async function checkForUpdate() {
+            try {
+                const filename = getEdition() === 'min' ? 'world-cup-2026.min.html' : 'world-cup-2026.html';
+                const rawUrl = `https://raw.githubusercontent.com/anubisalpha/world-cup-2026-dashboard/main/${filename}`;
+                const response = await fetch(rawUrl);
+                if (!response.ok) return;
+
+                const html = await response.text();
+                const match = html.match(/wc2026-version:\s*(\d+)/);
+                const remoteVersion = match ? parseInt(match[1]) : 0;
+                const localVersion = getLocalVersion();
+
+                if (remoteVersion > localVersion) {
+                    document.getElementById('update-banner').style.display = 'block';
+                }
+            } catch (e) {}
+        }
+
+        async function updateApp() {
+            const banner = document.getElementById('update-banner');
+            banner.innerHTML = '<div style="color: white; font-weight: 600; font-size: 0.85em;">⏳ Downloading...</div>';
+
+            try {
+                const edition = getEdition();
+                const filename = edition === 'min' ? 'world-cup-2026.min.html' : 'world-cup-2026.html';
+                const rawUrl = `https://raw.githubusercontent.com/anubisalpha/world-cup-2026-dashboard/main/${filename}`;
+
+                const response = await fetch(rawUrl);
+                if (!response.ok) throw new Error('Could not fetch latest version');
+
+                const html = await response.text();
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(url);
+
+                banner.innerHTML = '<div style="color: white; font-weight: 600; font-size: 0.85em;">✅ Downloaded</div><div style="color: rgba(255,255,255,0.8); font-size: 0.7em; margin-top: 2px;">Save over your existing file</div>';
+                banner.style.animation = 'none';
+            } catch (err) {
+                alert('Update failed: ' + err.message);
+                banner.innerHTML = '<div style="color: white; font-weight: 600; font-size: 0.85em;">🔄 Update Available</div><div style="color: rgba(255,255,255,0.8); font-size: 0.7em; margin-top: 2px;">Click to download</div>';
+            }
+        }
+
         function exportResults() {
             const dataStr = JSON.stringify(results, null, 2);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
@@ -1772,6 +1840,8 @@
         }
 
         // Initialize
+        document.getElementById('version-label').textContent = 'v' + getLocalVersion();
+        checkForUpdate();
         loadResults();
         updateGroupStandings();
         populateKnockoutMatches();
