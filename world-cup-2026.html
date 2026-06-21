@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- wc2026-edition: full wc2026-version: 3 wc2026-date: 2026-06-21 -->
+<!-- wc2026-version: 3 wc2026-date: 2026-06-21 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1758,14 +1758,10 @@
             return match ? match[1] : '';
         }
 
-        function getEdition() {
-            return getMetaComment().includes('wc2026-edition: min') ? 'min' : 'full';
-        }
 
         async function checkForUpdate() {
             try {
-                const filename = getEdition() === 'min' ? 'world-cup-2026.min.html' : 'world-cup-2026.html';
-                const rawUrl = `https://raw.githubusercontent.com/anubisalpha/world-cup-2026-dashboard/main/${filename}`;
+                const rawUrl = 'https://raw.githubusercontent.com/anubisalpha/world-cup-2026-dashboard/main/world-cup-2026.html';
                 const response = await fetch(rawUrl);
                 if (!response.ok) return;
 
@@ -1785,8 +1781,7 @@
             banner.innerHTML = '<div style="color: white; font-weight: 600; font-size: 0.85em;">⏳ Downloading...</div>';
 
             try {
-                const edition = getEdition();
-                const filename = edition === 'min' ? 'world-cup-2026.min.html' : 'world-cup-2026.html';
+                const filename = 'world-cup-2026.html';
                 const rawUrl = `https://raw.githubusercontent.com/anubisalpha/world-cup-2026-dashboard/main/${filename}`;
 
                 const response = await fetch(rawUrl);

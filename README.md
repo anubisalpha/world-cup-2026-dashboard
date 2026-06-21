@@ -92,8 +92,7 @@ This dashboard provides a complete tracking experience for the World Cup 2026, f
 
 - **Version Detection**: The dashboard checks GitHub for newer versions on load
 - **Update Banner**: A visible notification appears in the header when an update is available
-- **Edition-Aware**: Automatically detects whether you're running the full or minified version and downloads the correct one
-- **Version Label**: Current version number always visible in the header for quick reference
+- **Version Label**: Current version number and build date always visible in the header for quick reference
 
 ### 📱 Responsive Design
 
@@ -184,7 +183,7 @@ All data is embedded in a single data structure at the top of the HTML file. Edi
 
 ## File Size
 
-- **Standard**: ~100 KB (html, css, javascript, all data embedded)
+- **Single file**: ~106 KB (html, css, javascript, all data embedded)
 - **Compressed**: ~16 KB when gzipped (recommended for email sharing)
 
 ## Distribution
