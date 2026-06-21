@@ -1,5 +1,7 @@
 # World Cup 2026 Dashboard
 
+**v3 — 2026-06-21**
+
 A fully-featured, self-contained interactive tournament tracking dashboard for the FIFA World Cup 2026. No build tools. No external dependencies. Just one HTML file with everything you need to follow the entire tournament in real-time.
 
 ## Overview
@@ -68,18 +70,18 @@ This dashboard provides a complete tracking experience for the World Cup 2026, f
 
 ### 💾 Data Management
 
-- **Export Functionality**: Save your tournament progress at any time:
+- **Export JSON**: Save your tournament progress at any time:
   - Full tournament state exported as JSON
   - Includes all match results, group standings, and knockout progress
   - Perfect for backup or sharing with others
 
-- **Import Functionality**: Load a previously saved tournament state:
-  - Restore from a JSON export
+- **Import JSON**: Load a previously saved tournament state:
+  - Restore from a JSON export file
   - Seamlessly continue tracking from where you left off
   - Easy sharing of tournament state with friends
 
 - **Import Online**: One-click import of the latest results from GitHub:
-  - Fetches the most recent results export from the repository
+  - Fetches the most recent results export from the repository's `exports/` folder
   - No need to manually download and import JSON files
   - Keeps your scores up to date with a single button press
 
@@ -91,8 +93,9 @@ This dashboard provides a complete tracking experience for the World Cup 2026, f
 ### 🔄 Auto-Update
 
 - **Version Detection**: The dashboard checks GitHub for newer versions on load
-- **Update Banner**: A visible notification appears in the header when an update is available
-- **Version Label**: Current version number and build date always visible in the header for quick reference
+- **Update Banner**: A pulsing notification appears in the header when an update is available
+- **One-Click Download**: Click the banner to download the latest version and save over your existing file
+- **Version Label**: Current version number and build date always visible in the header
 
 ### 📱 Responsive Design
 
@@ -132,9 +135,16 @@ This dashboard provides a complete tracking experience for the World Cup 2026, f
 
 ### Saving and Sharing
 
-- **Export**: Click "Export Tournament" to download your progress as a JSON file
-- **Import**: Click "Import Tournament" and select a previously saved JSON file to restore your state
+- **Export JSON**: Click "Export JSON" to download your progress as a JSON file
+- **Import JSON**: Click "Import JSON" and select a previously saved JSON file to restore your state
+- **Import Online**: Click "Import Online" to fetch the latest results directly from GitHub
 - **Share**: Email the exported JSON to friends so they can view your tournament progress
+
+### Keeping Up to Date
+
+- The dashboard automatically checks for new versions when loaded
+- If an update is available, a purple **"Update Available"** banner appears in the header
+- Click the banner to download the latest version, then save it over your existing file
 
 ## Technical Details
 
@@ -144,20 +154,21 @@ This dashboard provides a complete tracking experience for the World Cup 2026, f
 - **Pure JavaScript**: Vanilla JS with no framework dependencies
 - **Embedded Data**: All tournament data, venues, teams, and channels built into the HTML
 - **Client-Side Processing**: Everything runs locally in your browser for instant updates
+- **GitHub Integration**: Online import and auto-update via GitHub API and raw content
 
 ### Data Structure
 
 ```
-- 12 Groups (A-L) with 4 teams each
+- 12 Groups (A-L) with 4 teams each (48 teams total)
 - 48 Group Stage Matches
   - Date, time, stadium, location, UK broadcast channel
-- 25 Knockout Matches
+- Knockout Matches
   - Quarter-finals: 8 matches
   - Semi-finals: 4 matches
-  - Final: 1 match
   - Third-place playoff: 1 match
-- 32 National Teams with FIFA page links
-- 12 Stadiums with capacities and locations
+  - Final: 1 match
+- 48 National Teams with FIFA page links and flag images
+- 12+ Stadiums with capacities and locations
 - Broadcast channel mappings with stream links
 ```
 
