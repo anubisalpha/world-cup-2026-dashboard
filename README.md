@@ -1,6 +1,6 @@
 # World Cup 2026 Dashboard
 
-**v3 — 2026-06-21**
+**v4 — 2026-06-26**
 
 A fully-featured, self-contained interactive tournament tracking dashboard for the FIFA World Cup 2026. No build tools. No external dependencies. Just one HTML file with everything you need to follow the entire tournament in real-time.
 
@@ -38,6 +38,8 @@ This dashboard provides a complete tracking experience for the World Cup 2026, f
 
 ### 🏆 Knockout Stage Management
 
+- **Auto-Switch to Knockout Tab**: When the knockout stage begins (29 June 2026), the dashboard automatically opens on the Knockout Stage tab and scrolls to today's matches — no manual navigation needed
+
 - **Dynamic Bracket Generation**: The knockout bracket automatically populates based on group results:
   - Quarter-finals (8 matches) with 1st vs 2nd from paired groups
   - Semi-finals (4 matches) with winners advancing automatically
@@ -50,6 +52,14 @@ This dashboard provides a complete tracking experience for the World Cup 2026, f
   - Tracks third-place winner separately
 
 - **Knockout Result Entry**: Simple interface to record knockout match winners and advance teams through the bracket
+
+### 🥇 Winners
+
+- **Winners Tab**: A dedicated tab that reveals the tournament podium once results are entered:
+  - **Champion** — large flag, gold border, final score displayed
+  - **Runner-up** — flag with silver styling
+  - **Third Place** — flag with bronze styling and 3rd place match score
+  - Populates automatically from the Final and Third Place Playoff results — no extra data entry needed
 
 ### 🌐 Global Coverage
 
