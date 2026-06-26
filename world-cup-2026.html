@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- wc2026-version: 3 wc2026-date: 2026-06-21 -->
+<!-- wc2026-version: 4 wc2026-date: 2026-06-26 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -629,6 +629,7 @@
                     <button id="tab-group-stages" onclick="switchMainTab(event, 'group-stages')" style="padding: 12px 20px; background: transparent; color: #1e3c72; border: none; border-bottom: 3px solid #1e3c72; cursor: pointer; font-weight: 600;">Group Stages</button>
                     <button id="tab-results" onclick="switchMainTab(event, 'results')" style="padding: 12px 20px; background: transparent; color: #999; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-weight: 600;">Group Stage Results</button>
                     <button id="tab-knockout" onclick="switchMainTab(event, 'knockout')" style="padding: 12px 20px; background: transparent; color: #999; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-weight: 600;">Knockout Stage</button>
+                    <button id="tab-winners" onclick="switchMainTab(event, 'winners')" style="padding: 12px 20px; background: transparent; color: #999; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-weight: 600;">🏆 Winners</button>
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <button onclick="exportResults()" style="padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 500;">📥 Export JSON</button>
@@ -672,6 +673,11 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            <div id="winners-view" style="display: none;">
+                <h2 style="color: #1e3c72; margin-bottom: 30px;">Tournament Results</h2>
+                <div id="winners-content"></div>
             </div>
 
             <div id="results-view" style="display: none;">
@@ -1069,6 +1075,7 @@
             // Hide all views
             document.getElementById('group-stages-view').style.display = 'none';
             document.getElementById('knockout-view').style.display = 'none';
+            document.getElementById('winners-view').style.display = 'none';
             document.getElementById('results-view').style.display = 'none';
 
             // Remove active state from all tabs
@@ -1089,6 +1096,11 @@
             if (tabId === 'knockout') {
                 renderThirdPlace();
                 renderKnockout();
+                setTimeout(scrollToTodaysKnockoutMatch, 100);
+            }
+
+            if (tabId === 'winners') {
+                renderWinners();
             }
 
             // Add active state to clicked tab
@@ -1647,6 +1659,76 @@
             renderKnockout();
         }
 
+        function scrollToTodaysKnockoutMatch() {
+            const row = document.querySelector(`#knockout-tbody tr[data-date="${today}"]`);
+            if (row) {
+                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function renderWinners() {
+            const container = document.getElementById('winners-content');
+            const finalResult = results['FINAL'];
+            const thirdResult = results['3P'];
+
+            const finalMatch = knockoutStages.find(m => m.id === 'FINAL');
+            const winner = finalMatch ? getTeamFromMatchResult(finalMatch.team1) : 'TBD';
+            const runnerUp = finalMatch ? getTeamFromMatchResult(finalMatch.team2) : 'TBD';
+            const thirdTeam1 = getThirdPlaceTeam('A/B/C/D');
+            const thirdTeam2 = getThirdPlaceTeam('E/F/G/H');
+
+            let winnerTeam = 'TBD', runnerUpTeam = 'TBD', thirdTeam = 'TBD';
+            let finalScore = '', thirdScore = '';
+
+            if (finalResult && finalResult.score1 !== undefined && finalResult.score2 !== undefined) {
+                finalScore = `${finalResult.score1} – ${finalResult.score2}`;
+                winnerTeam = parseInt(finalResult.score1) >= parseInt(finalResult.score2) ? winner : runnerUp;
+                runnerUpTeam = parseInt(finalResult.score1) >= parseInt(finalResult.score2) ? runnerUp : winner;
+            } else {
+                winnerTeam = winner !== 'TBD' ? winner : 'TBD';
+                runnerUpTeam = runnerUp !== 'TBD' ? runnerUp : 'TBD';
+            }
+
+            if (thirdResult && thirdResult.score1 !== undefined && thirdResult.score2 !== undefined) {
+                thirdScore = `${thirdResult.score1} – ${thirdResult.score2}`;
+                thirdTeam = parseInt(thirdResult.score1) >= parseInt(thirdResult.score2) ? thirdTeam1 : thirdTeam2;
+            }
+
+            const flagImg = (team, size) => team !== 'TBD' && teamFlags[team]
+                ? `<img src="${teamFlags[team]}" alt="${team}" style="width: ${size}px; height: auto; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">`
+                : `<div style="width: ${size}px; height: ${Math.round(size*0.67)}px; background: #eee; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 0.8em;">TBD</div>`;
+
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 20px; max-width: 600px; margin: 0 auto;">
+                    <!-- Winner -->
+                    <div style="background: linear-gradient(135deg, #fff8e1, #fffde7); border: 2px solid #ffd600; border-radius: 12px; padding: 30px; text-align: center; box-shadow: 0 4px 16px rgba(255,214,0,0.2);">
+                        <div style="font-size: 3em; margin-bottom: 10px;">🏆</div>
+                        <div style="color: #f57f00; font-weight: 700; font-size: 1em; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 16px;">World Cup Winner</div>
+                        <div style="display: flex; justify-content: center; margin-bottom: 16px;">${flagImg(winnerTeam, 120)}</div>
+                        <div style="font-size: 2em; font-weight: 700; color: #1e3c72;">${winnerTeam !== 'TBD' ? getTeamLink(winnerTeam) : '<span style="color:#999;">TBD</span>'}</div>
+                        ${finalScore ? `<div style="margin-top: 10px; font-size: 1.1em; color: #666;">Final score: <strong>${finalScore}</strong></div>` : ''}
+                    </div>
+
+                    <!-- Runner-up -->
+                    <div style="background: #fafafa; border: 2px solid #bdbdbd; border-radius: 12px; padding: 24px; text-align: center;">
+                        <div style="font-size: 2em; margin-bottom: 8px;">🥈</div>
+                        <div style="color: #757575; font-weight: 600; font-size: 0.9em; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;">Runner-up</div>
+                        <div style="display: flex; justify-content: center; margin-bottom: 12px;">${flagImg(runnerUpTeam, 80)}</div>
+                        <div style="font-size: 1.5em; font-weight: 600; color: #424242;">${runnerUpTeam !== 'TBD' ? getTeamLink(runnerUpTeam) : '<span style="color:#999;">TBD</span>'}</div>
+                    </div>
+
+                    <!-- Third place -->
+                    <div style="background: #fafafa; border: 2px solid #cd7f32; border-radius: 12px; padding: 24px; text-align: center;">
+                        <div style="font-size: 2em; margin-bottom: 8px;">🥉</div>
+                        <div style="color: #8d5524; font-weight: 600; font-size: 0.9em; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;">Third Place</div>
+                        <div style="display: flex; justify-content: center; margin-bottom: 12px;">${flagImg(thirdTeam, 80)}</div>
+                        <div style="font-size: 1.5em; font-weight: 600; color: #424242;">${thirdTeam !== 'TBD' ? getTeamLink(thirdTeam) : '<span style="color:#999;">TBD</span>'}</div>
+                        ${thirdScore ? `<div style="margin-top: 8px; font-size: 1em; color: #666;">3rd place score: <strong>${thirdScore}</strong></div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
         function renderKnockout() {
             const tbody = document.getElementById('knockout-tbody');
             tbody.innerHTML = knockoutStages.map(match => {
@@ -1668,7 +1750,7 @@
                 const criteria1Width = isCriteria1 ? 'auto' : '0';
                 const criteria2Width = isCriteria2 ? 'auto' : '0';
 
-                return `<tr style="border-bottom: 1px solid #eee;">
+                return `<tr data-date="${match.date}" style="border-bottom: 1px solid #eee;">
                     <td style="padding: 12px;">
                         <div style="font-weight: 600; color: #1e3c72; margin-bottom: 4px;">${match.id} • ${match.stage}</div>
                         <div style="font-size: 0.85em; color: #666;">${getStadiumLink(match.stadium)}</div>
@@ -1859,6 +1941,8 @@
         // Scroll to today's matches on initial load
         if (!defaultToKnockout) {
             setTimeout(scrollToTodaysMatches, 100);
+        } else {
+            setTimeout(scrollToTodaysKnockoutMatch, 100);
         }
 
         // Load default tab
