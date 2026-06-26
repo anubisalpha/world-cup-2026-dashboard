@@ -10,6 +10,8 @@ This guide explains how to create a tournament tracking dashboard similar to the
 - Dynamic group standings with tiebreaker tracking
 - Knockout bracket that populates from group results
 - Third-place playoff tracking
+- **Winners tab** — champion, runner-up, and third place podium with flags and scores
+- **Knockout auto-scroll** — auto-switches to Knockout tab and scrolls to today on load once the knockout stage begins
 - Export/Import results as JSON
 - Responsive design (desktop, tablet, mobile)
 - All data persists in browser localStorage
@@ -223,9 +225,13 @@ const knockoutStages = [
 Update the tournament dates:
 
 ```javascript
-const today = '2024-06-10';  // current/start date
+const today = new Date().toISOString().slice(0, 10);  // computed from system clock — do not hardcode
 const knockoutStartDate = '2024-06-29';  // when knockout stage begins
 ```
+
+`knockoutStartDate` controls two behaviours:
+- On load, if today >= this date, the dashboard opens on the **Knockout Stage** tab and scrolls to today's matches automatically
+- While still in group stage, the dashboard opens on **Group Stages** and scrolls to today's date button instead
 
 ### 13. Update Third-Place Playoff
 
@@ -243,7 +249,25 @@ const thirdPlaceMatch = {
 };
 ```
 
-### 14. Customize Colors (Optional)
+### 14. Winners Tab
+
+The Winners tab requires no extra data — it reads directly from the Final (`id: 'FINAL'`) and Third Place Playoff (`id: '3P'`) match results already in `knockoutStages` and `results`.
+
+**What it displays:**
+- 🥇 **Champion** — large flag image, gold border, final score
+- 🥈 **Runner-up** — medium flag image, silver styling
+- 🥉 **Third Place** — medium flag image, bronze styling, 3rd place score
+
+The podium cards show "TBD" placeholders until scores are entered, so the tab is safe to show at any point in the tournament.
+
+**Customisation options:**
+- Adjust flag sizes by changing the `size` parameter passed to `flagImg()` in `renderWinners()`
+- Change card border colours in the inline styles within `renderWinners()` (gold: `#ffd600`, silver: `#bdbdbd`, bronze: `#cd7f32`)
+- To remove third place entirely (some tournaments don't have one), delete the third-place card block from `renderWinners()` and remove `id: '3P'` from `knockoutStages`
+
+**If your tournament has no third-place match**, change `renderWinners()` to only show two cards (winner and runner-up), and remove the `thirdPlaceMatch` object.
+
+### 16. Customize Colors (Optional)
 
 Update the color scheme in the CSS `<style>` section:
 
@@ -261,7 +285,7 @@ Common colors to customize:
 - `#1e3c72` - Sidebar title background
 - Text colors, borders, etc.
 
-### 15. Update Features List
+### 17. Update Features List
 
 Change the features displayed in the header:
 
@@ -319,14 +343,26 @@ Before testing, verify:
 - [ ] Can enter knockout match scores
 - [ ] Later rounds populate with winners from previous rounds
 
-### 5. Data Persistence
+### 5. Knockout Auto-Switch
+- [ ] Temporarily set `knockoutStartDate` to today's date and reload
+- [ ] Dashboard should open on the Knockout Stage tab automatically
+- [ ] Page should scroll to today's matches in the knockout table
+- [ ] Restore the correct date when done testing
+
+### 6. Winners Tab
+- [ ] Click the "🏆 Winners" tab — should show three "TBD" placeholders
+- [ ] Enter a score for the Final match (Knockout Stage tab) and switch back to Winners — champion and runner-up should appear with flags
+- [ ] Enter a score for the 3rd Place Playoff — third place card should populate
+- [ ] Verify flag images display correctly for all three teams
+
+### 7. Data Persistence
 - [ ] Enter some results
 - [ ] Refresh the page
 - [ ] Results are still there (localStorage working)
 - [ ] Can export results as JSON
 - [ ] Can import previously exported JSON
 
-### 6. Responsive Design
+### 8. Responsive Design
 - [ ] Test on desktop (full layout)
 - [ ] Test on tablet (sidebar stacks above content)
 - [ ] Test on mobile (all content single column)
@@ -445,9 +481,11 @@ To sync results across multiple devices:
 6. ✓ Add team flag URLs/emojis
 7. ✓ Configure broadcast channels
 8. ✓ Define knockout bracket structure
-9. ✓ Customize colors (optional)
-10. ✓ Test all functionality
-11. ✓ Compress and share
+9. ✓ Set `knockoutStartDate` so auto-switch and auto-scroll trigger at the right time
+10. ✓ Verify Winners tab populates from Final and 3rd Place results (no extra config needed)
+11. ✓ Customize colors (optional)
+12. ✓ Test all functionality
+13. ✓ Compress and share
 
 ---
 
