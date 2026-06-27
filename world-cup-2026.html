@@ -1938,7 +1938,10 @@
         }
 
         function getMetaComment() {
-            return document.childNodes[1]?.textContent || '';
+            for (let i = 0; i < document.childNodes.length; i++) {
+                if (document.childNodes[i].nodeType === 8) return document.childNodes[i].textContent || '';
+            }
+            return '';
         }
 
         function getLocalVersion() {
