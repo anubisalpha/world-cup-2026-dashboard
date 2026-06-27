@@ -1,6 +1,6 @@
 # World Cup 2026 Dashboard
 
-**v4 — 2026-06-26**
+**v5 — 2026-06-27**
 
 A fully-featured, self-contained interactive tournament tracking dashboard for the FIFA World Cup 2026. No build tools. No external dependencies. Just one HTML file with everything you need to follow the entire tournament in real-time.
 
@@ -38,17 +38,22 @@ This dashboard provides a complete tracking experience for the World Cup 2026, f
 
 ### 🏆 Knockout Stage Management
 
-- **Auto-Switch to Knockout Tab**: When the knockout stage begins (29 June 2026), the dashboard automatically opens on the Knockout Stage tab and scrolls to today's matches — no manual navigation needed
+- **Auto-Switch to Knockout Tab**: When the knockout stage begins (28 June 2026), the dashboard automatically opens on the Knockout Stage tab and scrolls to today's matches — no manual navigation needed
 
-- **Dynamic Bracket Generation**: The knockout bracket automatically populates based on group results:
-  - Quarter-finals (8 matches) with 1st vs 2nd from paired groups
-  - Semi-finals (4 matches) with winners advancing automatically
-  - Final (1 match) with the last two teams standing
+- **Official FIFA Bracket**: The complete knockout bracket follows the official FIFA 2026 format:
+  - Round of 32 (16 matches) — group winners, runners-up, and best third-place teams
+  - Round of 16 (8 matches) with winners advancing automatically
+  - Quarter-finals (4 matches), Semi-finals (2 matches), and Final
   - All team qualifications calculated recursively from group standings
 
-- **Third-Place Playoff**: Conditional tracking of the match for 3rd place:
-  - Only enabled after semi-final results are entered
-  - Automatically identifies the losing semi-finalists
+- **Best Third-Place Qualification**: Automatic ranking of all 12 third-place group finishers:
+  - Top 8 qualify for the Round of 32 (ranked by points, goal difference, goals scored)
+  - Sidebar shows live ranking with qualify/eliminate indicators
+  - Assignment to specific R32 matches uses FIFA's Annex C combination table
+  - Backtracking solver as fallback for hypothetical scenarios
+
+- **Third-Place Playoff**: Tracks the match for 3rd/4th place:
+  - Automatically identifies the losing semi-finalists (SF-1 Loser vs SF-2 Loser)
   - Tracks third-place winner separately
 
 - **Knockout Result Entry**: Simple interface to record knockout match winners and advance teams through the bracket
@@ -170,11 +175,13 @@ This dashboard provides a complete tracking experience for the World Cup 2026, f
 
 ```
 - 12 Groups (A-L) with 4 teams each (48 teams total)
-- 48 Group Stage Matches
+- 72 Group Stage Matches
   - Date, time, stadium, location, UK broadcast channel
 - Knockout Matches
-  - Quarter-finals: 8 matches
-  - Semi-finals: 4 matches
+  - Round of 32: 16 matches
+  - Round of 16: 8 matches
+  - Quarter-finals: 4 matches
+  - Semi-finals: 2 matches
   - Third-place playoff: 1 match
   - Final: 1 match
 - 48 National Teams with FIFA page links and flag images

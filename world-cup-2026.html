@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- wc2026-version: 4 wc2026-date: 2026-06-26 -->
+<!-- wc2026-version: 5 wc2026-date: 2026-06-27 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1027,16 +1027,102 @@
         let defaultToKnockout = today >= knockoutStartDate;
         let tiebreakSelections = {}; // Stores manual selections for tied teams, e.g. { 'A-1': 'Mexico', 'B-2': 'Canada' }
 
-        // Third-place playoff match
+        // Third-place playoff match (SF losers)
         const thirdPlaceMatch = {
             id: '3P',
             date: '2026-07-18',
             stage: 'Third Place Playoff',
-            team1: '3rd Place Group A/B/C/D',
-            team2: '3rd Place Group E/F/G/H',
-            stadium: 'New Jersey',
+            team1: 'SF-1 Loser',
+            team2: 'SF-2 Loser',
+            stadium: 'Miami',
             channels: ['ITV1', 'BBC One']
         };
+
+        // Third-place assignment: possible source groups for each R32 slot
+        const thirdPlaceSlots = {
+            'R32-2':  { winner: 'E', possible: ['A','B','C','D','F'] },
+            'R32-5':  { winner: 'I', possible: ['C','D','F','G','H'] },
+            'R32-7':  { winner: 'A', possible: ['C','E','F','H','I'] },
+            'R32-8':  { winner: 'L', possible: ['E','H','I','J','K'] },
+            'R32-9':  { winner: 'D', possible: ['B','E','F','I','J'] },
+            'R32-10': { winner: 'G', possible: ['A','E','H','I','J'] },
+            'R32-13': { winner: 'B', possible: ['E','F','G','I','J'] },
+            'R32-15': { winner: 'K', possible: ['D','E','I','J','L'] }
+        };
+
+        // Known third-place assignment combinations (FIFA Annex C - currently possible)
+        const thirdPlaceCombinations = {
+            'BDEFIJKL': { A:'E', B:'J', D:'B', E:'D', G:'I', I:'F', K:'L', L:'K' },
+            'BDEFGIKL': { A:'E', B:'G', D:'B', E:'D', G:'I', I:'F', K:'L', L:'K' },
+            'BDEFGIJL': { A:'E', B:'G', D:'B', E:'D', G:'J', I:'F', K:'L', L:'I' },
+            'BDEFGIJK': { A:'E', B:'G', D:'B', E:'D', G:'J', I:'F', K:'I', L:'K' },
+            'ABDEFGIL': { A:'E', B:'G', D:'B', E:'D', G:'A', I:'F', K:'L', L:'I' },
+            'ABDEFGIK': { A:'E', B:'G', D:'B', E:'D', G:'A', I:'F', K:'I', L:'K' },
+            'ABDEFGIJ': { A:'E', B:'G', D:'B', E:'D', G:'A', I:'F', K:'I', L:'J' },
+            'ABCDEFGI': { A:'C', B:'G', D:'B', E:'D', G:'A', I:'F', K:'E', L:'I' }
+        };
+
+        function rankThirdPlaceTeams() {
+            const groupLetters = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+            const thirdTeams = groupLetters.map(letter => {
+                const groupTeams = groups[letter];
+                if (groupTeams && groupTeams.length > 2) {
+                    return { name: groupTeams[2].name, pts: groupTeams[2].pts, gf: groupTeams[2].gf || 0, ga: groupTeams[2].ga || 0, group: letter };
+                }
+                return { name: 'TBD', pts: 0, gf: 0, ga: 0, group: letter };
+            });
+            thirdTeams.sort((a, b) => {
+                const ptsDiff = b.pts - a.pts;
+                if (ptsDiff !== 0) return ptsDiff;
+                const gdA = a.gf - a.ga;
+                const gdB = b.gf - b.ga;
+                if (gdB !== gdA) return gdB - gdA;
+                return b.gf - a.gf;
+            });
+            return thirdTeams;
+        }
+
+        function getThirdPlaceAssignment() {
+            const ranked = rankThirdPlaceTeams();
+            const qualifyingGroups = ranked.slice(0, 8).map(t => t.group).sort().join('');
+            if (thirdPlaceCombinations[qualifyingGroups]) {
+                const combo = thirdPlaceCombinations[qualifyingGroups];
+                const result = {};
+                Object.entries(thirdPlaceSlots).forEach(([matchId, slot]) => {
+                    const sourceGroup = combo[slot.winner];
+                    const groupTeams = groups[sourceGroup];
+                    result[matchId] = groupTeams && groupTeams.length > 2 ? groupTeams[2].name : 'TBD';
+                });
+                return result;
+            }
+            // Fallback: backtracking assignment for unknown combinations
+            const qualSet = new Set(ranked.slice(0, 8).map(t => t.group));
+            const slotEntries = Object.entries(thirdPlaceSlots);
+            const available = slotEntries.map(([, slot]) => slot.possible.filter(g => qualSet.has(g)));
+            const assignment = new Array(8).fill(null);
+            const used = new Set();
+            function backtrack(i) {
+                if (i === 8) return true;
+                for (const g of available[i]) {
+                    if (!used.has(g)) {
+                        assignment[i] = g;
+                        used.add(g);
+                        if (backtrack(i + 1)) return true;
+                        used.delete(g);
+                    }
+                }
+                return false;
+            }
+            const result = {};
+            if (backtrack(0)) {
+                slotEntries.forEach(([matchId], i) => {
+                    const sourceGroup = assignment[i];
+                    const groupTeams = groups[sourceGroup];
+                    result[matchId] = groupTeams && groupTeams.length > 2 ? groupTeams[2].name : 'TBD';
+                });
+            }
+            return result;
+        }
 
         // Load results from localStorage
         function loadResults() {
@@ -1256,14 +1342,30 @@
 
         function renderThirdPlacePreview() {
             const container = document.getElementById('third-place-preview');
-            const groupLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+            const ranked = rankThirdPlaceTeams();
 
-            container.innerHTML = groupLetters.map(letter => {
-                const groupTeams = groups[letter];
-                const thirdPlaceTeam = groupTeams && groupTeams.length > 2 ? groupTeams[2].name : 'TBD';
-                const thirdPlaceLink = thirdPlaceTeam === 'TBD' ? '<span style="color: #999;">TBD</span>' : getTeamLink(thirdPlaceTeam);
-                return `<div style="margin-bottom: 6px;"><strong>Group ${letter}:</strong> ${thirdPlaceLink}</div>`;
-            }).join('');
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: 20px 1fr 30px 25px 25px; gap: 2px 6px; font-size: 0.85em; align-items: center;">
+                    <div style="color: #999; font-weight: 600;">#</div>
+                    <div style="color: #999; font-weight: 600;">Team</div>
+                    <div style="color: #999; font-weight: 600; text-align: center;">Pts</div>
+                    <div style="color: #999; font-weight: 600; text-align: center;">GD</div>
+                    <div style="color: #999; font-weight: 600; text-align: center;">GF</div>
+                    ${ranked.map((t, i) => {
+                        const qualifies = i < 8;
+                        const gd = t.gf - t.ga;
+                        const gdStr = gd > 0 ? '+' + gd : '' + gd;
+                        const bg = qualifies ? '#e8f5e9' : '#ffebee';
+                        const icon = qualifies ? '✓' : '✗';
+                        const iconColor = qualifies ? '#2e7d32' : '#c62828';
+                        return `
+                            <div style="background: ${bg}; padding: 2px 4px; border-radius: 2px; text-align: center;"><span style="color: ${iconColor}; font-weight: 600;">${icon}</span></div>
+                            <div style="background: ${bg}; padding: 2px 4px; border-radius: 2px;"><strong>${t.group}</strong> ${t.name}</div>
+                            <div style="background: ${bg}; padding: 2px 4px; border-radius: 2px; text-align: center; font-weight: 600;">${t.pts}</div>
+                            <div style="background: ${bg}; padding: 2px 4px; border-radius: 2px; text-align: center;">${gdStr}</div>
+                            <div style="background: ${bg}; padding: 2px 4px; border-radius: 2px; text-align: center;">${t.gf}</div>`;
+                    }).join('')}
+                </div>`;
         }
 
         function renderGroups() {
@@ -1274,10 +1376,11 @@
                     <div class="group-table">
                         <div class="group-name">Knockout Phase</div>
                         <div style="padding: 12px 0; font-size: 0.85em; color: #666;">
-                            <p style="margin: 8px 0;">Round of 16: 12 matches</p>
+                            <p style="margin: 8px 0;">Round of 32: 16 matches</p>
+                            <p style="margin: 8px 0;">Round of 16: 8 matches</p>
                             <p style="margin: 8px 0;">Quarterfinals: 4 matches</p>
                             <p style="margin: 8px 0;">Semifinals: 2 matches</p>
-                            <p style="margin: 8px 0;">Final: 1 match</p>
+                            <p style="margin: 8px 0;">Third Place Playoff + Final</p>
                         </div>
                     </div>
                 `;
@@ -1394,7 +1497,15 @@
             { id: 'GM61', date: '2026-06-26', group: 'I', team1: 'Norway', team2: 'France' },
             { id: 'GM62', date: '2026-06-26', group: 'I', team1: 'Senegal', team2: 'Iraq' },
             { id: 'GM63', date: '2026-06-27', group: 'H', team1: 'Cape Verde', team2: 'Saudi Arabia' },
-            { id: 'GM64', date: '2026-06-27', group: 'H', team1: 'Uruguay', team2: 'Spain' }
+            { id: 'GM64', date: '2026-06-27', group: 'H', team1: 'Uruguay', team2: 'Spain' },
+            { id: 'GM65', date: '2026-06-27', group: 'G', team1: 'New Zealand', team2: 'Belgium' },
+            { id: 'GM66', date: '2026-06-27', group: 'G', team1: 'Egypt', team2: 'Iran' },
+            { id: 'GM67', date: '2026-06-27', group: 'L', team1: 'Panama', team2: 'England' },
+            { id: 'GM68', date: '2026-06-27', group: 'L', team1: 'Croatia', team2: 'Ghana' },
+            { id: 'GM69', date: '2026-06-28', group: 'K', team1: 'Colombia', team2: 'Portugal' },
+            { id: 'GM70', date: '2026-06-28', group: 'K', team1: 'DR Congo', team2: 'Uzbekistan' },
+            { id: 'GM71', date: '2026-06-28', group: 'J', team1: 'Algeria', team2: 'Austria' },
+            { id: 'GM72', date: '2026-06-28', group: 'J', team1: 'Jordan', team2: 'Argentina' }
         ];
 
         function calculatePoints(score1, score2) {
@@ -1476,49 +1587,33 @@
             return stadiumName;
         }
 
-        function getThirdPlaceTeam(groupRange) {
-            // groupRange like "A/B/C/D" - return the 3rd place team from whichever group has results
-            if (!groupRange) return 'TBD';
-            const groups_in_range = groupRange.split('/');
-            for (let g of groups_in_range) {
-                const groupTeams = groups[g];
-                if (groupTeams && groupTeams.length > 2) {
-                    return groupTeams[2].name; // 3rd place is index 2
-                }
-            }
-            return 'TBD';
-        }
-
         function getTeamFromMatchResult(matchRef) {
             // If it's already a team name, return it
-            if (!matchRef.includes('Winner') && !matchRef.includes('Group') && !matchRef.includes('3rd Place')) {
+            if (!matchRef.includes('Winner') && !matchRef.includes('Loser') && !matchRef.includes('Group') && !matchRef.includes('3rd')) {
                 return matchRef;
             }
 
-            // If it references the third-place playoff winner
-            if (matchRef.includes('3rd Place')) {
-                const result = results['3P'];
-                if (result && result.score1 !== undefined && result.score2 !== undefined) {
-                    const team1 = getThirdPlaceTeam('A/B/C/D');
-                    const team2 = getThirdPlaceTeam('E/F/G/H');
-                    return parseInt(result.score1) > parseInt(result.score2) ? team1 : team2;
-                }
-                return 'TBD';
-            }
-
-            // If it references a knockout match winner
-            if (matchRef.includes('Winner')) {
-                const matchId = matchRef.replace(' Winner', '');
+            // If it references a knockout match winner or loser
+            if (matchRef.includes('Winner') || matchRef.includes('Loser')) {
+                const isLoser = matchRef.includes('Loser');
+                const matchId = matchRef.replace(isLoser ? ' Loser' : ' Winner', '');
                 const result = results[matchId];
                 if (result && result.score1 !== undefined && result.score2 !== undefined) {
                     const match = knockoutStages.find(m => m.id === matchId);
                     if (match) {
                         const team1 = getTeamFromMatchResult(match.team1);
                         const team2 = getTeamFromMatchResult(match.team2);
-                        return parseInt(result.score1) > parseInt(result.score2) ? team1 : team2;
+                        const team1Wins = parseInt(result.score1) > parseInt(result.score2);
+                        if (isLoser) return team1Wins ? team2 : team1;
+                        return team1Wins ? team1 : team2;
                     }
                 }
                 return 'TBD';
+            }
+
+            // If it references a third-place team assignment (e.g. '3rd A/B/C/D/F')
+            if (matchRef.startsWith('3rd ')) {
+                return 'TBD'; // resolved via populateKnockoutMatches using getThirdPlaceAssignment
             }
 
             // If it references a group position
@@ -1538,9 +1633,14 @@
         }
 
         function populateKnockoutMatches() {
+            const thirdPlaceAssignments = getThirdPlaceAssignment();
             knockoutStages.forEach(match => {
                 match.actualTeam1 = getTeamFromMatchResult(match.team1);
-                match.actualTeam2 = getTeamFromMatchResult(match.team2);
+                if (match.team2.startsWith('3rd ') && thirdPlaceAssignments[match.id]) {
+                    match.actualTeam2 = thirdPlaceAssignments[match.id];
+                } else {
+                    match.actualTeam2 = getTeamFromMatchResult(match.team2);
+                }
             });
         }
 
@@ -1586,32 +1686,43 @@
             renderGroupResults();
         }
 
-        // Knockout matches data
+        // Knockout matches data (official FIFA bracket)
         const knockoutStages = [
-            { id: 'KO1', date: '2026-06-29', stage: 'Round of 32', team1: 'Group A 2nd', team2: 'Group B 2nd', stadium: 'Los Angeles', channels: ['ITV1', 'BBC One'] },
-            { id: 'KO2', date: '2026-06-29', stage: 'Round of 32', team1: 'Group C 1st', team2: 'Group F 2nd', stadium: 'Houston', channels: ['BBC One'] },
-            { id: 'KO3', date: '2026-06-30', stage: 'Round of 32', team1: 'Group F 1st', team2: 'Group C 2nd', stadium: 'Guadalupe, Mexico', channels: ['ITV1'] },
-            { id: 'KO4', date: '2026-06-30', stage: 'Round of 32', team1: 'Group E 1st', team2: '3rd Place', stadium: 'Foxborough', channels: ['BBC One'] },
-            { id: 'KO5', date: '2026-07-01', stage: 'Round of 32', team1: 'Group A 1st', team2: '3rd Place', stadium: 'Mexico City', channels: ['ITV1'] },
-            { id: 'KO6', date: '2026-07-01', stage: 'Round of 32', team1: 'Group L 1st', team2: '3rd Place', stadium: 'Atlanta', channels: ['BBC One'] },
-            { id: 'KO7', date: '2026-07-02', stage: 'Round of 32', team1: 'Group G 1st', team2: '3rd Place', stadium: 'Seattle', channels: ['ITV1'] },
-            { id: 'KO8', date: '2026-07-02', stage: 'Round of 32', team1: 'Group D 1st', team2: '3rd Place', stadium: 'Santa Clara', channels: ['BBC One'] },
-            { id: 'KO9', date: '2026-07-03', stage: 'Round of 32', team1: 'Group K 2nd', team2: 'Group L 2nd', stadium: 'Toronto', channels: ['BBC One'] },
-            { id: 'KO10', date: '2026-07-03', stage: 'Round of 32', team1: 'Group B 1st', team2: '3rd Place', stadium: 'New Jersey', channels: ['ITV1'] },
-            { id: 'KO11', date: '2026-07-04', stage: 'Round of 32', team1: 'Group J 1st', team2: 'Group H 2nd', stadium: 'Miami', channels: ['ITV1'] },
-            { id: 'KO12', date: '2026-07-04', stage: 'Round of 32', team1: 'KO10 Winner', team2: 'KO12 Winner', stadium: 'Arlington', channels: ['BBC One'] },
-            { id: 'R16-1', date: '2026-07-04', stage: 'Round of 16', team1: 'KO1 Winner', team2: 'KO3 Winner', stadium: 'Houston', channels: ['ITV1', 'BBC One'] },
-            { id: 'R16-2', date: '2026-07-05', stage: 'Round of 16', team1: 'KO2 Winner', team2: 'KO4 Winner', stadium: 'Philadelphia', channels: ['BBC One'] },
-            { id: 'R16-3', date: '2026-07-05', stage: 'Round of 16', team1: 'KO5 Winner', team2: 'KO6 Winner', stadium: 'New Jersey', channels: ['BBC One'] },
-            { id: 'R16-4', date: '2026-07-06', stage: 'Round of 16', team1: 'KO7 Winner', team2: 'KO8 Winner', stadium: 'Arlington', channels: ['ITV1'] },
-            { id: 'R16-5', date: '2026-07-06', stage: 'Round of 16', team1: 'KO9 Winner', team2: 'KO11 Winner', stadium: 'Atlanta', channels: ['ITV1'] },
-            { id: 'R16-6', date: '2026-07-07', stage: 'Round of 16', team1: 'KO12 Winner', team2: 'KO5 Winner', stadium: 'Vancouver', channels: ['BBC One'] },
+            // Round of 32
+            { id: 'R32-1',  date: '2026-06-28', stage: 'Round of 32', team1: 'Group A 2nd', team2: 'Group B 2nd', stadium: 'Los Angeles', channels: ['ITV1', 'BBC One'] },
+            { id: 'R32-2',  date: '2026-06-29', stage: 'Round of 32', team1: 'Group E 1st', team2: '3rd A/B/C/D/F', stadium: 'Foxborough', channels: ['BBC One'] },
+            { id: 'R32-3',  date: '2026-06-29', stage: 'Round of 32', team1: 'Group F 1st', team2: 'Group C 2nd', stadium: 'Guadalupe', channels: ['ITV1'] },
+            { id: 'R32-4',  date: '2026-06-29', stage: 'Round of 32', team1: 'Group C 1st', team2: 'Group F 2nd', stadium: 'Houston', channels: ['BBC One'] },
+            { id: 'R32-5',  date: '2026-06-30', stage: 'Round of 32', team1: 'Group I 1st', team2: '3rd C/D/F/G/H', stadium: 'New Jersey', channels: ['BBC One'] },
+            { id: 'R32-6',  date: '2026-06-30', stage: 'Round of 32', team1: 'Group E 2nd', team2: 'Group I 2nd', stadium: 'Arlington', channels: ['ITV1'] },
+            { id: 'R32-7',  date: '2026-06-30', stage: 'Round of 32', team1: 'Group A 1st', team2: '3rd C/E/F/H/I', stadium: 'Mexico City', channels: ['ITV1'] },
+            { id: 'R32-8',  date: '2026-07-01', stage: 'Round of 32', team1: 'Group L 1st', team2: '3rd E/H/I/J/K', stadium: 'Atlanta', channels: ['BBC One'] },
+            { id: 'R32-9',  date: '2026-07-01', stage: 'Round of 32', team1: 'Group D 1st', team2: '3rd B/E/F/I/J', stadium: 'Santa Clara', channels: ['BBC One'] },
+            { id: 'R32-10', date: '2026-07-01', stage: 'Round of 32', team1: 'Group G 1st', team2: '3rd A/E/H/I/J', stadium: 'Seattle', channels: ['ITV1'] },
+            { id: 'R32-11', date: '2026-07-02', stage: 'Round of 32', team1: 'Group K 2nd', team2: 'Group L 2nd', stadium: 'Toronto', channels: ['BBC One'] },
+            { id: 'R32-12', date: '2026-07-02', stage: 'Round of 32', team1: 'Group H 1st', team2: 'Group J 2nd', stadium: 'Los Angeles', channels: ['ITV1'] },
+            { id: 'R32-13', date: '2026-07-02', stage: 'Round of 32', team1: 'Group B 1st', team2: '3rd E/F/G/I/J', stadium: 'Vancouver', channels: ['BBC One'] },
+            { id: 'R32-14', date: '2026-07-03', stage: 'Round of 32', team1: 'Group J 1st', team2: 'Group H 2nd', stadium: 'Miami', channels: ['ITV1'] },
+            { id: 'R32-15', date: '2026-07-03', stage: 'Round of 32', team1: 'Group K 1st', team2: '3rd D/E/I/J/L', stadium: 'Kansas City', channels: ['BBC One'] },
+            { id: 'R32-16', date: '2026-07-03', stage: 'Round of 32', team1: 'Group D 2nd', team2: 'Group G 2nd', stadium: 'Arlington', channels: ['ITV1'] },
+            // Round of 16
+            { id: 'R16-1', date: '2026-07-04', stage: 'Round of 16', team1: 'R32-2 Winner', team2: 'R32-5 Winner', stadium: 'Philadelphia', channels: [] },
+            { id: 'R16-2', date: '2026-07-04', stage: 'Round of 16', team1: 'R32-1 Winner', team2: 'R32-3 Winner', stadium: 'Houston', channels: ['ITV1', 'BBC One'] },
+            { id: 'R16-3', date: '2026-07-05', stage: 'Round of 16', team1: 'R32-4 Winner', team2: 'R32-6 Winner', stadium: 'New Jersey', channels: [] },
+            { id: 'R16-4', date: '2026-07-05', stage: 'Round of 16', team1: 'R32-7 Winner', team2: 'R32-8 Winner', stadium: 'Mexico City', channels: [] },
+            { id: 'R16-5', date: '2026-07-06', stage: 'Round of 16', team1: 'R32-11 Winner', team2: 'R32-12 Winner', stadium: 'Arlington', channels: ['ITV1'] },
+            { id: 'R16-6', date: '2026-07-06', stage: 'Round of 16', team1: 'R32-9 Winner', team2: 'R32-10 Winner', stadium: 'Seattle', channels: [] },
+            { id: 'R16-7', date: '2026-07-07', stage: 'Round of 16', team1: 'R32-14 Winner', team2: 'R32-16 Winner', stadium: 'Atlanta', channels: [] },
+            { id: 'R16-8', date: '2026-07-07', stage: 'Round of 16', team1: 'R32-13 Winner', team2: 'R32-15 Winner', stadium: 'Vancouver', channels: [] },
+            // Quarterfinals
             { id: 'QF-1', date: '2026-07-09', stage: 'Quarterfinal', team1: 'R16-1 Winner', team2: 'R16-2 Winner', stadium: 'Foxborough', channels: ['ITV1', 'BBC One'] },
-            { id: 'QF-2', date: '2026-07-10', stage: 'Quarterfinal', team1: 'R16-4 Winner', team2: 'R16-5 Winner', stadium: 'Los Angeles', channels: ['BBC One'] },
-            { id: 'QF-3', date: '2026-07-11', stage: 'Quarterfinal', team1: 'R16-3 Winner', team2: 'R16-4 Winner', stadium: 'Miami', channels: ['ITV1'] },
-            { id: 'QF-4', date: '2026-07-12', stage: 'Quarterfinal', team1: 'R16-6 Winner', team2: 'R16-1 Winner', stadium: 'Kansas City', channels: ['BBC One'] },
+            { id: 'QF-2', date: '2026-07-10', stage: 'Quarterfinal', team1: 'R16-5 Winner', team2: 'R16-6 Winner', stadium: 'Los Angeles', channels: [] },
+            { id: 'QF-3', date: '2026-07-11', stage: 'Quarterfinal', team1: 'R16-3 Winner', team2: 'R16-4 Winner', stadium: 'Miami', channels: [] },
+            { id: 'QF-4', date: '2026-07-11', stage: 'Quarterfinal', team1: 'R16-7 Winner', team2: 'R16-8 Winner', stadium: 'Kansas City', channels: [] },
+            // Semifinals
             { id: 'SF-1', date: '2026-07-14', stage: 'Semifinal', team1: 'QF-1 Winner', team2: 'QF-2 Winner', stadium: 'Arlington', channels: ['ITV1', 'BBC One'] },
-            { id: 'SF-2', date: '2026-07-15', stage: 'Semifinal', team1: 'QF-3 Winner', team2: 'QF-4 Winner', stadium: 'Atlanta', channels: ['BBC One'] },
+            { id: 'SF-2', date: '2026-07-15', stage: 'Semifinal', team1: 'QF-3 Winner', team2: 'QF-4 Winner', stadium: 'Atlanta', channels: [] },
+            // Final
             { id: 'FINAL', date: '2026-07-19', stage: 'Final', team1: 'SF-1 Winner', team2: 'SF-2 Winner', stadium: 'New Jersey', channels: ['ITV1', 'BBC One'] }
         ];
 
@@ -1619,14 +1730,14 @@
             const container = document.getElementById('third-place-section');
             const result = results['3P'] || {};
 
-            const team1 = getThirdPlaceTeam('A/B/C/D');
-            const team2 = getThirdPlaceTeam('E/F/G/H');
+            const team1 = getTeamFromMatchResult('SF-1 Loser');
+            const team2 = getTeamFromMatchResult('SF-2 Loser');
             const team1Link = team1 === 'TBD' ? '<span style="color: #999;">TBD</span>' : getTeamLink(team1);
             const team2Link = team2 === 'TBD' ? '<span style="color: #999;">TBD</span>' : getTeamLink(team2);
 
             container.innerHTML = `
                 <div style="text-align: right; padding: 15px; background: #f9f9f9; border-radius: 4px;">
-                    <div style="font-weight: 600; color: #1e3c72; margin-bottom: 5px;">3rd Place Group A/B/C/D</div>
+                    <div style="font-weight: 600; color: #1e3c72; margin-bottom: 5px;">SF-1 Loser</div>
                     <div style="font-size: 1.1em; color: #333;">${team1Link}</div>
                 </div>
                 <div style="text-align: center; padding: 15px;">
@@ -1636,7 +1747,7 @@
                     <button onclick="clearThirdPlaceResult()" style="margin-left: 15px; padding: 6px 12px; background: #ff6b6b; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.9em;">Clear</button>
                 </div>
                 <div style="text-align: left; padding: 15px; background: #f9f9f9; border-radius: 4px;">
-                    <div style="font-weight: 600; color: #1e3c72; margin-bottom: 5px;">3rd Place Group E/F/G/H</div>
+                    <div style="font-weight: 600; color: #1e3c72; margin-bottom: 5px;">SF-2 Loser</div>
                     <div style="font-size: 1.1em; color: #333;">${team2Link}</div>
                 </div>
             `;
@@ -1674,8 +1785,8 @@
             const finalMatch = knockoutStages.find(m => m.id === 'FINAL');
             const winner = finalMatch ? getTeamFromMatchResult(finalMatch.team1) : 'TBD';
             const runnerUp = finalMatch ? getTeamFromMatchResult(finalMatch.team2) : 'TBD';
-            const thirdTeam1 = getThirdPlaceTeam('A/B/C/D');
-            const thirdTeam2 = getThirdPlaceTeam('E/F/G/H');
+            const thirdTeam1 = getTeamFromMatchResult('SF-1 Loser');
+            const thirdTeam2 = getTeamFromMatchResult('SF-2 Loser');
 
             let winnerTeam = 'TBD', runnerUpTeam = 'TBD', thirdTeam = 'TBD';
             let finalScore = '', thirdScore = '';
@@ -1745,8 +1856,8 @@
                 const team1Link = team1Display === 'TBD' ? team1Display : getTeamLink(team1Display);
                 const team2Link = team2Display === 'TBD' ? team2Display : getTeamLink(team2Display);
 
-                const isCriteria1 = match.team1.includes('Group') || match.team1.includes('Winner') || match.team1.includes('3rd');
-                const isCriteria2 = match.team2.includes('Group') || match.team2.includes('Winner') || match.team2.includes('3rd');
+                const isCriteria1 = match.team1.includes('Group') || match.team1.includes('Winner') || match.team1.includes('Loser') || match.team1.includes('3rd');
+                const isCriteria2 = match.team2.includes('Group') || match.team2.includes('Winner') || match.team2.includes('Loser') || match.team2.includes('3rd');
                 const criteria1Width = isCriteria1 ? 'auto' : '0';
                 const criteria2Width = isCriteria2 ? 'auto' : '0';
 
