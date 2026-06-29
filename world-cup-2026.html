@@ -648,13 +648,6 @@
             <div id="knockout-view" style="display: none;">
                 <h2 style="color: #1e3c72; margin-bottom: 20px;">Knockout Stage Results</h2>
 
-                <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-                    <h3 style="color: #856404; margin-bottom: 15px;">Third Place Playoff</h3>
-                    <div id="third-place-section" style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: center;">
-                        <!-- Will be filled by renderThirdPlace() -->
-                    </div>
-                </div>
-
                 <div style="overflow-x: auto;">
                     <table id="knockout-table" style="width: 100%; border-collapse: collapse; font-size: 0.95em;">
                         <thead>
@@ -958,12 +951,15 @@
             'ITV1': 'https://www.itv.com/',
             'ITV4': 'https://www.itv.com/',
             'ITVX': 'https://www.itv.com/',
+            'STV': 'https://player.stv.tv/',
+            'STV Player': 'https://player.stv.tv/',
             'STVITVX': 'https://www.itv.com/',
             'BBC One': 'https://www.bbc.co.uk/sport',
             'BBC1': 'https://www.bbc.co.uk/sport',
             'BBC Two': 'https://www.bbc.co.uk/sport',
             'BBC2': 'https://www.bbc.co.uk/sport',
-            'BBC iPlayer': 'https://www.bbc.co.uk/sport'
+            'BBC iPlayer': 'https://www.bbc.co.uk/iplayer',
+            'BBC Sport Website': 'https://www.bbc.co.uk/sport/football/world-cup'
         };
 
         // Team flag URLs from FIFA API
@@ -1689,45 +1685,48 @@
         // Knockout matches data (official FIFA bracket)
         const knockoutStages = [
             // Round of 32
-            { id: 'R32-1',  date: '2026-06-28', stage: 'Round of 32', team1: 'Group A 2nd', team2: 'Group B 2nd', stadium: 'Los Angeles', channels: ['ITV1', 'BBC One'] },
-            { id: 'R32-2',  date: '2026-06-29', stage: 'Round of 32', team1: 'Group E 1st', team2: '3rd A/B/C/D/F', stadium: 'Foxborough', channels: ['BBC One'] },
-            { id: 'R32-3',  date: '2026-06-29', stage: 'Round of 32', team1: 'Group F 1st', team2: 'Group C 2nd', stadium: 'Guadalupe', channels: ['ITV1'] },
-            { id: 'R32-4',  date: '2026-06-29', stage: 'Round of 32', team1: 'Group C 1st', team2: 'Group F 2nd', stadium: 'Houston', channels: ['BBC One'] },
-            { id: 'R32-5',  date: '2026-06-30', stage: 'Round of 32', team1: 'Group I 1st', team2: '3rd C/D/F/G/H', stadium: 'New Jersey', channels: ['BBC One'] },
-            { id: 'R32-6',  date: '2026-06-30', stage: 'Round of 32', team1: 'Group E 2nd', team2: 'Group I 2nd', stadium: 'Arlington', channels: ['ITV1'] },
-            { id: 'R32-7',  date: '2026-06-30', stage: 'Round of 32', team1: 'Group A 1st', team2: '3rd C/E/F/H/I', stadium: 'Mexico City', channels: ['ITV1'] },
-            { id: 'R32-8',  date: '2026-07-01', stage: 'Round of 32', team1: 'Group L 1st', team2: '3rd E/H/I/J/K', stadium: 'Atlanta', channels: ['BBC One'] },
-            { id: 'R32-9',  date: '2026-07-01', stage: 'Round of 32', team1: 'Group D 1st', team2: '3rd B/E/F/I/J', stadium: 'Santa Clara', channels: ['BBC One'] },
-            { id: 'R32-10', date: '2026-07-01', stage: 'Round of 32', team1: 'Group G 1st', team2: '3rd A/E/H/I/J', stadium: 'Seattle', channels: ['ITV1'] },
-            { id: 'R32-11', date: '2026-07-02', stage: 'Round of 32', team1: 'Group K 2nd', team2: 'Group L 2nd', stadium: 'Toronto', channels: ['BBC One'] },
-            { id: 'R32-12', date: '2026-07-02', stage: 'Round of 32', team1: 'Group H 1st', team2: 'Group J 2nd', stadium: 'Los Angeles', channels: ['ITV1'] },
-            { id: 'R32-13', date: '2026-07-02', stage: 'Round of 32', team1: 'Group B 1st', team2: '3rd E/F/G/I/J', stadium: 'Vancouver', channels: ['BBC One'] },
-            { id: 'R32-14', date: '2026-07-03', stage: 'Round of 32', team1: 'Group J 1st', team2: 'Group H 2nd', stadium: 'Miami', channels: ['ITV1'] },
-            { id: 'R32-15', date: '2026-07-03', stage: 'Round of 32', team1: 'Group K 1st', team2: '3rd D/E/I/J/L', stadium: 'Kansas City', channels: ['BBC One'] },
-            { id: 'R32-16', date: '2026-07-03', stage: 'Round of 32', team1: 'Group D 2nd', team2: 'Group G 2nd', stadium: 'Arlington', channels: ['ITV1'] },
+            { id: 'R32-1',  date: '2026-06-28', stage: 'Round of 32', team1: 'Group A 2nd', team2: 'Group B 2nd', stadium: 'Los Angeles', channels: ['ITVX'] },
+            { id: 'R32-2',  date: '2026-06-29', time: '18:00', stage: 'Round of 32', team1: 'Group E 1st', team2: '3rd A/B/C/D/F', stadium: 'Foxborough', channels: ['ITVX'] },
+            { id: 'R32-3',  date: '2026-06-29', time: '21:30', stage: 'Round of 32', team1: 'Group F 1st', team2: 'Group C 2nd', stadium: 'Guadalupe', channels: ['BBC iPlayer'] },
+            { id: 'R32-4',  date: '2026-06-30', time: '02:00', stage: 'Round of 32', team1: 'Group C 1st', team2: 'Group F 2nd', stadium: 'Houston', channels: ['ITVX'] },
+            { id: 'R32-5',  date: '2026-06-30', time: '18:00', stage: 'Round of 32', team1: 'Group I 1st', team2: '3rd C/D/F/G/H', stadium: 'New Jersey', channels: ['BBC iPlayer'] },
+            { id: 'R32-6',  date: '2026-06-30', time: '22:00', stage: 'Round of 32', team1: 'Group E 2nd', team2: 'Group I 2nd', stadium: 'Arlington', channels: ['ITVX'] },
+            { id: 'R32-7',  date: '2026-07-01', time: '02:00', stage: 'Round of 32', team1: 'Group A 1st', team2: '3rd C/E/F/H/I', stadium: 'Mexico City', channels: ['ITVX'] },
+            { id: 'R32-8',  date: '2026-07-01', time: '17:00', stage: 'Round of 32', team1: 'Group L 1st', team2: '3rd E/H/I/J/K', stadium: 'Atlanta', channels: ['BBC iPlayer'] },
+            { id: 'R32-9',  date: '2026-07-01', time: '21:00', stage: 'Round of 32', team1: 'Group D 1st', team2: '3rd B/E/F/I/J', stadium: 'Santa Clara', channels: ['ITVX'] },
+            { id: 'R32-10', date: '2026-07-02', time: '01:00', stage: 'Round of 32', team1: 'Group G 1st', team2: '3rd A/E/H/I/J', stadium: 'Seattle', channels: ['BBC iPlayer'] },
+            { id: 'R32-11', date: '2026-07-02', time: '20:00', stage: 'Round of 32', team1: 'Group K 2nd', team2: 'Group L 2nd', stadium: 'Toronto', channels: ['BBC iPlayer'] },
+            { id: 'R32-12', date: '2026-07-03', time: '00:00', stage: 'Round of 32', team1: 'Group H 1st', team2: 'Group J 2nd', stadium: 'Los Angeles', channels: ['BBC iPlayer'] },
+            { id: 'R32-13', date: '2026-07-03', time: '04:00', stage: 'Round of 32', team1: 'Group B 1st', team2: '3rd E/F/G/I/J', stadium: 'Vancouver', channels: ['BBC iPlayer'] },
+            { id: 'R32-14', date: '2026-07-03', time: '19:00', stage: 'Round of 32', team1: 'Group J 1st', team2: 'Group H 2nd', stadium: 'Miami', channels: ['BBC iPlayer'] },
+            { id: 'R32-15', date: '2026-07-03', time: '23:00', stage: 'Round of 32', team1: 'Group K 1st', team2: '3rd D/E/I/J/L', stadium: 'Kansas City', channels: ['ITVX'] },
+            { id: 'R32-16', date: '2026-07-04', time: '02:30', stage: 'Round of 32', team1: 'Group D 2nd', team2: 'Group G 2nd', stadium: 'Arlington', channels: ['ITVX'] },
             // Round of 16
-            { id: 'R16-1', date: '2026-07-04', stage: 'Round of 16', team1: 'R32-2 Winner', team2: 'R32-5 Winner', stadium: 'Philadelphia', channels: [] },
-            { id: 'R16-2', date: '2026-07-04', stage: 'Round of 16', team1: 'R32-1 Winner', team2: 'R32-3 Winner', stadium: 'Houston', channels: ['ITV1', 'BBC One'] },
-            { id: 'R16-3', date: '2026-07-05', stage: 'Round of 16', team1: 'R32-4 Winner', team2: 'R32-6 Winner', stadium: 'New Jersey', channels: [] },
-            { id: 'R16-4', date: '2026-07-05', stage: 'Round of 16', team1: 'R32-7 Winner', team2: 'R32-8 Winner', stadium: 'Mexico City', channels: [] },
-            { id: 'R16-5', date: '2026-07-06', stage: 'Round of 16', team1: 'R32-11 Winner', team2: 'R32-12 Winner', stadium: 'Arlington', channels: ['ITV1'] },
-            { id: 'R16-6', date: '2026-07-06', stage: 'Round of 16', team1: 'R32-9 Winner', team2: 'R32-10 Winner', stadium: 'Seattle', channels: [] },
-            { id: 'R16-7', date: '2026-07-07', stage: 'Round of 16', team1: 'R32-14 Winner', team2: 'R32-16 Winner', stadium: 'Atlanta', channels: [] },
-            { id: 'R16-8', date: '2026-07-07', stage: 'Round of 16', team1: 'R32-13 Winner', team2: 'R32-15 Winner', stadium: 'Vancouver', channels: [] },
+            { id: 'R16-1', date: '2026-07-04', time: '17:00', stage: 'Round of 16', team1: 'R32-2 Winner', team2: 'R32-5 Winner', stadium: 'Philadelphia', channels: [] },
+            { id: 'R16-2', date: '2026-07-04', time: '13:00', stage: 'Round of 16', team1: 'R32-1 Winner', team2: 'R32-3 Winner', stadium: 'Houston', channels: [] },
+            { id: 'R16-3', date: '2026-07-05', time: '16:00', stage: 'Round of 16', team1: 'R32-4 Winner', team2: 'R32-6 Winner', stadium: 'New Jersey', channels: [] },
+            { id: 'R16-4', date: '2026-07-05', time: '20:00', stage: 'Round of 16', team1: 'R32-7 Winner', team2: 'R32-8 Winner', stadium: 'Mexico City', channels: [] },
+            { id: 'R16-5', date: '2026-07-06', time: '15:00', stage: 'Round of 16', team1: 'R32-11 Winner', team2: 'R32-12 Winner', stadium: 'Dallas', channels: [] },
+            { id: 'R16-6', date: '2026-07-06', time: '20:00', stage: 'Round of 16', team1: 'R32-9 Winner', team2: 'R32-10 Winner', stadium: 'Seattle', channels: [] },
+            { id: 'R16-7', date: '2026-07-07', time: '12:00', stage: 'Round of 16', team1: 'R32-14 Winner', team2: 'R32-16 Winner', stadium: 'Atlanta', channels: [] },
+            { id: 'R16-8', date: '2026-07-07', time: '16:00', stage: 'Round of 16', team1: 'R32-13 Winner', team2: 'R32-15 Winner', stadium: 'Vancouver', channels: [] },
             // Quarterfinals
-            { id: 'QF-1', date: '2026-07-09', stage: 'Quarterfinal', team1: 'R16-1 Winner', team2: 'R16-2 Winner', stadium: 'Foxborough', channels: ['ITV1', 'BBC One'] },
-            { id: 'QF-2', date: '2026-07-10', stage: 'Quarterfinal', team1: 'R16-5 Winner', team2: 'R16-6 Winner', stadium: 'Los Angeles', channels: [] },
-            { id: 'QF-3', date: '2026-07-11', stage: 'Quarterfinal', team1: 'R16-3 Winner', team2: 'R16-4 Winner', stadium: 'Miami', channels: [] },
-            { id: 'QF-4', date: '2026-07-11', stage: 'Quarterfinal', team1: 'R16-7 Winner', team2: 'R16-8 Winner', stadium: 'Kansas City', channels: [] },
+            { id: 'QF-1', date: '2026-07-09', time: '16:00', stage: 'Quarterfinal', team1: 'R16-1 Winner', team2: 'R16-2 Winner', stadium: 'Foxborough', channels: [] },
+            { id: 'QF-2', date: '2026-07-10', time: '15:00', stage: 'Quarterfinal', team1: 'R16-5 Winner', team2: 'R16-6 Winner', stadium: 'Los Angeles', channels: [] },
+            { id: 'QF-3', date: '2026-07-11', time: '17:00', stage: 'Quarterfinal', team1: 'R16-3 Winner', team2: 'R16-4 Winner', stadium: 'Miami', channels: [] },
+            { id: 'QF-4', date: '2026-07-11', time: '21:00', stage: 'Quarterfinal', team1: 'R16-7 Winner', team2: 'R16-8 Winner', stadium: 'Kansas City', channels: [] },
             // Semifinals
-            { id: 'SF-1', date: '2026-07-14', stage: 'Semifinal', team1: 'QF-1 Winner', team2: 'QF-2 Winner', stadium: 'Arlington', channels: ['ITV1', 'BBC One'] },
-            { id: 'SF-2', date: '2026-07-15', stage: 'Semifinal', team1: 'QF-3 Winner', team2: 'QF-4 Winner', stadium: 'Atlanta', channels: [] },
+            { id: 'SF-1', date: '2026-07-14', time: '15:00', stage: 'Semifinal', team1: 'QF-1 Winner', team2: 'QF-2 Winner', stadium: 'Dallas', channels: [] },
+            { id: 'SF-2', date: '2026-07-15', time: '15:00', stage: 'Semifinal', team1: 'QF-3 Winner', team2: 'QF-4 Winner', stadium: 'Atlanta', channels: [] },
+            // Third Place Playoff
+            { id: '3P', date: '2026-07-18', time: '17:00', stage: 'Third Place Playoff', team1: 'SF-1 Loser', team2: 'SF-2 Loser', stadium: 'Miami', channels: [] },
             // Final
-            { id: 'FINAL', date: '2026-07-19', stage: 'Final', team1: 'SF-1 Winner', team2: 'SF-2 Winner', stadium: 'New Jersey', channels: ['ITV1', 'BBC One'] }
+            { id: 'FINAL', date: '2026-07-19', time: '15:00', stage: 'Final', team1: 'SF-1 Winner', team2: 'SF-2 Winner', stadium: 'New Jersey', channels: [] }
         ];
 
         function renderThirdPlace() {
             const container = document.getElementById('third-place-section');
+            if (!container) return;
             const result = results['3P'] || {};
 
             const team1 = getTeamFromMatchResult('SF-1 Loser');
