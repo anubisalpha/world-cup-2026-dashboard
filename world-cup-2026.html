@@ -1034,16 +1034,16 @@
             channels: ['ITV1', 'BBC One']
         };
 
-        // Third-place assignment: possible source groups for each R32 slot
+        // Third-place assignment: possible source groups for each R32 slot (FIFA official bracket)
         const thirdPlaceSlots = {
-            'R32-2':  { winner: 'E', possible: ['A','B','C','D','F'] },
-            'R32-5':  { winner: 'I', possible: ['C','D','F','G','H'] },
+            'R32-3':  { winner: 'E', possible: ['A','B','C','D','F'] },
+            'R32-6':  { winner: 'I', possible: ['C','D','F','G','H'] },
             'R32-7':  { winner: 'A', possible: ['C','E','F','H','I'] },
             'R32-8':  { winner: 'L', possible: ['E','H','I','J','K'] },
-            'R32-9':  { winner: 'D', possible: ['B','E','F','I','J'] },
-            'R32-10': { winner: 'G', possible: ['A','E','H','I','J'] },
-            'R32-13': { winner: 'B', possible: ['E','F','G','I','J'] },
-            'R32-15': { winner: 'K', possible: ['D','E','I','J','L'] }
+            'R32-9':  { winner: 'G', possible: ['A','E','H','I','J'] },
+            'R32-10': { winner: 'D', possible: ['B','E','F','I','J'] },
+            'R32-12': { winner: 'K', possible: ['D','E','I','J','L'] },
+            'R32-13': { winner: 'B', possible: ['E','F','G','I','J'] }
         };
 
         // Known third-place assignment combinations (FIFA Annex C - currently possible)
@@ -1515,49 +1515,95 @@
             Object.values(groups).forEach(grp => {
                 grp.forEach(t => {
                     t.pts = 0;
-                    t.gf = 0;  // Goals for
-                    t.ga = 0;  // Goals against
+                    t.gf = 0;
+                    t.ga = 0;
                 });
             });
 
-            // Calculate points and goals from results
+            // Accumulate points and goals from results
             groupMatches.forEach(match => {
                 const result = results[match.id];
-                if (result && result.score1 !== undefined && result.score2 !== undefined) {
-                    const score1 = parseInt(result.score1);
-                    const score2 = parseInt(result.score2);
-                    const points = calculatePoints(score1, score2);
-
-                    // Find teams and update stats
-                    const groupTeams = groups[match.group];
-                    groupTeams.forEach(team => {
-                        if (team.name === match.team1) {
-                            team.pts += points.team1;
-                            team.gf += score1;
-                            team.ga += score2;
-                        }
-                        if (team.name === match.team2) {
-                            team.pts += points.team2;
-                            team.gf += score2;
-                            team.ga += score1;
-                        }
-                    });
-                }
+                if (!result || result.score1 === undefined || result.score2 === undefined) return;
+                const score1 = parseInt(result.score1);
+                const score2 = parseInt(result.score2);
+                const points = calculatePoints(score1, score2);
+                const groupTeams = groups[match.group];
+                groupTeams.forEach(team => {
+                    if (team.name === match.team1) {
+                        team.pts += points.team1;
+                        team.gf += score1;
+                        team.ga += score2;
+                    }
+                    if (team.name === match.team2) {
+                        team.pts += points.team2;
+                        team.gf += score2;
+                        team.ga += score1;
+                    }
+                });
             });
 
-            // Sort each group by points, then goal difference, then goals for
-            Object.values(groups).forEach(grp => {
+            // Sort each group: pts, then h2h tiebreakers, then overall GD/GF
+            Object.entries(groups).forEach(([letter, grp]) => {
+                // Initial sort by overall pts, GD, GF
                 grp.sort((a, b) => {
                     const ptsDiff = b.pts - a.pts;
                     if (ptsDiff !== 0) return ptsDiff;
-
-                    const gdA = (a.gf || 0) - (a.ga || 0);
-                    const gdB = (b.gf || 0) - (b.ga || 0);
-                    const gdDiff = gdB - gdA;
+                    const gdDiff = ((b.gf || 0) - (b.ga || 0)) - ((a.gf || 0) - (a.ga || 0));
                     if (gdDiff !== 0) return gdDiff;
-
                     return (b.gf || 0) - (a.gf || 0);
                 });
+
+                // Apply h2h tiebreaking within groups of teams equal on pts
+                const groupMatchList = groupMatches.filter(m => m.group === letter);
+                let i = 0;
+                while (i < grp.length) {
+                    let j = i + 1;
+                    while (j < grp.length && grp[j].pts === grp[i].pts) j++;
+
+                    if (j - i > 1) {
+                        const tied = grp.slice(i, j);
+                        const names = tied.map(t => t.name);
+
+                        // Calculate h2h stats among only the tied teams
+                        const h2h = {};
+                        names.forEach(n => { h2h[n] = { pts: 0, gf: 0, ga: 0 }; });
+                        groupMatchList.forEach(match => {
+                            if (!names.includes(match.team1) || !names.includes(match.team2)) return;
+                            const result = results[match.id];
+                            if (!result || result.score1 === undefined || result.score2 === undefined) return;
+                            const s1 = parseInt(result.score1);
+                            const s2 = parseInt(result.score2);
+                            const pts = calculatePoints(s1, s2);
+                            h2h[match.team1].pts += pts.team1;
+                            h2h[match.team1].gf += s1;
+                            h2h[match.team1].ga += s2;
+                            h2h[match.team2].pts += pts.team2;
+                            h2h[match.team2].gf += s2;
+                            h2h[match.team2].ga += s1;
+                        });
+
+                        tied.sort((a, b) => {
+                            // 1. H2H points
+                            const hPts = h2h[b.name].pts - h2h[a.name].pts;
+                            if (hPts !== 0) return hPts;
+                            // 2. H2H goal difference
+                            const hGdA = h2h[a.name].gf - h2h[a.name].ga;
+                            const hGdB = h2h[b.name].gf - h2h[b.name].ga;
+                            if (hGdB !== hGdA) return hGdB - hGdA;
+                            // 3. H2H goals scored
+                            if (h2h[b.name].gf !== h2h[a.name].gf) return h2h[b.name].gf - h2h[a.name].gf;
+                            // 4. Overall goal difference
+                            const gdA = (a.gf || 0) - (a.ga || 0);
+                            const gdB = (b.gf || 0) - (b.ga || 0);
+                            if (gdB !== gdA) return gdB - gdA;
+                            // 5. Overall goals scored
+                            return (b.gf || 0) - (a.gf || 0);
+                        });
+
+                        for (let k = 0; k < tied.length; k++) grp[i + k] = tied[k];
+                    }
+                    i = j;
+                }
             });
         }
 
@@ -1614,13 +1660,15 @@
 
             // If it references a group position
             if (matchRef.includes('Group')) {
-                const match = matchRef.match(/Group ([A-L])\s(1st|2nd)/);
+                const match = matchRef.match(/Group ([A-L])\s(1st|2nd|3rd)/);
                 if (match) {
                     const groupLetter = match[1];
                     const position = match[2];
                     const groupTeams = groups[groupLetter];
                     if (groupTeams && groupTeams.length > 0) {
-                        return position === '1st' ? groupTeams[0].name : groupTeams[1].name;
+                        if (position === '1st') return groupTeams[0].name;
+                        if (position === '2nd') return groupTeams[1].name;
+                        if (position === '3rd') return groupTeams[2] ? groupTeams[2].name : 'TBD';
                     }
                 }
             }
@@ -1685,22 +1733,22 @@
         // Knockout matches data (official FIFA bracket)
         const knockoutStages = [
             // Round of 32
-            { id: 'R32-1',  date: '2026-06-28', stage: 'Round of 32', team1: 'Group A 2nd', team2: 'Group B 2nd', stadium: 'Los Angeles', channels: ['ITVX'] },
-            { id: 'R32-2',  date: '2026-06-29', time: '18:00', stage: 'Round of 32', team1: 'Group E 1st', team2: '3rd A/B/C/D/F', stadium: 'Foxborough', channels: ['ITVX'] },
-            { id: 'R32-3',  date: '2026-06-29', time: '21:30', stage: 'Round of 32', team1: 'Group F 1st', team2: 'Group C 2nd', stadium: 'Guadalupe', channels: ['BBC iPlayer'] },
-            { id: 'R32-4',  date: '2026-06-30', time: '02:00', stage: 'Round of 32', team1: 'Group C 1st', team2: 'Group F 2nd', stadium: 'Houston', channels: ['ITVX'] },
-            { id: 'R32-5',  date: '2026-06-30', time: '18:00', stage: 'Round of 32', team1: 'Group I 1st', team2: '3rd C/D/F/G/H', stadium: 'New Jersey', channels: ['BBC iPlayer'] },
-            { id: 'R32-6',  date: '2026-06-30', time: '22:00', stage: 'Round of 32', team1: 'Group E 2nd', team2: 'Group I 2nd', stadium: 'Arlington', channels: ['ITVX'] },
-            { id: 'R32-7',  date: '2026-07-01', time: '02:00', stage: 'Round of 32', team1: 'Group A 1st', team2: '3rd C/E/F/H/I', stadium: 'Mexico City', channels: ['ITVX'] },
-            { id: 'R32-8',  date: '2026-07-01', time: '17:00', stage: 'Round of 32', team1: 'Group L 1st', team2: '3rd E/H/I/J/K', stadium: 'Atlanta', channels: ['BBC iPlayer'] },
-            { id: 'R32-9',  date: '2026-07-01', time: '21:00', stage: 'Round of 32', team1: 'Group D 1st', team2: '3rd B/E/F/I/J', stadium: 'Santa Clara', channels: ['ITVX'] },
-            { id: 'R32-10', date: '2026-07-02', time: '01:00', stage: 'Round of 32', team1: 'Group G 1st', team2: '3rd A/E/H/I/J', stadium: 'Seattle', channels: ['BBC iPlayer'] },
-            { id: 'R32-11', date: '2026-07-02', time: '20:00', stage: 'Round of 32', team1: 'Group K 2nd', team2: 'Group L 2nd', stadium: 'Toronto', channels: ['BBC iPlayer'] },
-            { id: 'R32-12', date: '2026-07-03', time: '00:00', stage: 'Round of 32', team1: 'Group H 1st', team2: 'Group J 2nd', stadium: 'Los Angeles', channels: ['BBC iPlayer'] },
-            { id: 'R32-13', date: '2026-07-03', time: '04:00', stage: 'Round of 32', team1: 'Group B 1st', team2: '3rd E/F/G/I/J', stadium: 'Vancouver', channels: ['BBC iPlayer'] },
-            { id: 'R32-14', date: '2026-07-03', time: '19:00', stage: 'Round of 32', team1: 'Group J 1st', team2: 'Group H 2nd', stadium: 'Miami', channels: ['BBC iPlayer'] },
-            { id: 'R32-15', date: '2026-07-03', time: '23:00', stage: 'Round of 32', team1: 'Group K 1st', team2: '3rd D/E/I/J/L', stadium: 'Kansas City', channels: ['ITVX'] },
-            { id: 'R32-16', date: '2026-07-04', time: '02:30', stage: 'Round of 32', team1: 'Group D 2nd', team2: 'Group G 2nd', stadium: 'Arlington', channels: ['ITVX'] },
+            { id: 'R32-1',  date: '2026-06-28', time: '20:00', stage: 'Round of 32', team1: 'Group A 2nd', team2: 'Group B 2nd', stadium: 'Los Angeles', channels: ['ITVX'] },
+            { id: 'R32-2',  date: '2026-06-29', time: '18:00', stage: 'Round of 32', team1: 'Group C 1st', team2: 'Group F 2nd', stadium: 'Foxborough', channels: ['ITVX'] },
+            { id: 'R32-3',  date: '2026-06-29', time: '21:30', stage: 'Round of 32', team1: 'Group E 1st', team2: 'Group D 3rd', stadium: 'Guadalupe', channels: ['BBC iPlayer'] },
+            { id: 'R32-4',  date: '2026-06-30', time: '02:00', stage: 'Round of 32', team1: 'Group F 1st', team2: 'Group C 2nd', stadium: 'Houston', channels: ['ITVX'] },
+            { id: 'R32-5',  date: '2026-06-30', time: '18:00', stage: 'Round of 32', team1: 'Group E 2nd', team2: 'Group I 2nd', stadium: 'New Jersey', channels: ['BBC iPlayer'] },
+            { id: 'R32-6',  date: '2026-06-30', time: '22:00', stage: 'Round of 32', team1: 'Group I 1st', team2: 'Group F 3rd', stadium: 'Arlington', channels: ['ITVX'] },
+            { id: 'R32-7',  date: '2026-07-01', time: '02:00', stage: 'Round of 32', team1: 'Group A 1st', team2: 'Group E 3rd', stadium: 'Mexico City', channels: ['ITVX'] },
+            { id: 'R32-8',  date: '2026-07-01', time: '17:00', stage: 'Round of 32', team1: 'Group L 1st', team2: 'Group K 3rd', stadium: 'Atlanta', channels: ['BBC iPlayer'] },
+            { id: 'R32-9',  date: '2026-07-01', time: '21:00', stage: 'Round of 32', team1: 'Group G 1st', team2: 'Group I 3rd', stadium: 'Santa Clara', channels: ['ITVX'] },
+            { id: 'R32-10', date: '2026-07-02', time: '01:00', stage: 'Round of 32', team1: 'Group D 1st', team2: 'Group B 3rd', stadium: 'Seattle', channels: ['BBC iPlayer'] },
+            { id: 'R32-11', date: '2026-07-02', time: '20:00', stage: 'Round of 32', team1: 'Group H 1st', team2: 'Group J 2nd', stadium: 'Toronto', channels: ['BBC iPlayer'] },
+            { id: 'R32-12', date: '2026-07-03', time: '00:00', stage: 'Round of 32', team1: 'Group K 1st', team2: 'Group L 3rd', stadium: 'Los Angeles', channels: ['BBC iPlayer'] },
+            { id: 'R32-13', date: '2026-07-03', time: '04:00', stage: 'Round of 32', team1: 'Group B 1st', team2: 'Group J 3rd', stadium: 'Vancouver', channels: ['BBC iPlayer'] },
+            { id: 'R32-14', date: '2026-07-03', time: '19:00', stage: 'Round of 32', team1: 'Group D 2nd', team2: 'Group G 2nd', stadium: 'Miami', channels: ['BBC iPlayer'] },
+            { id: 'R32-15', date: '2026-07-03', time: '23:00', stage: 'Round of 32', team1: 'Group J 1st', team2: 'Group H 2nd', stadium: 'Kansas City', channels: ['ITVX'] },
+            { id: 'R32-16', date: '2026-07-04', time: '02:30', stage: 'Round of 32', team1: 'Group K 2nd', team2: 'Group L 2nd', stadium: 'Arlington', channels: ['ITVX'] },
             // Round of 16
             { id: 'R16-1', date: '2026-07-04', time: '17:00', stage: 'Round of 16', team1: 'R32-2 Winner', team2: 'R32-5 Winner', stadium: 'Philadelphia', channels: [] },
             { id: 'R16-2', date: '2026-07-04', time: '13:00', stage: 'Round of 16', team1: 'R32-1 Winner', team2: 'R32-3 Winner', stadium: 'Houston', channels: [] },
