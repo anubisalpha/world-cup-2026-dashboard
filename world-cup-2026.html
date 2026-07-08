@@ -648,24 +648,7 @@
             <div id="knockout-view" style="display: none;">
                 <h2 style="color: #1e3c72; margin-bottom: 20px;">Knockout Stage Results</h2>
 
-                <div style="overflow-x: auto;">
-                    <table id="knockout-table" style="width: 100%; border-collapse: collapse; font-size: 0.95em;">
-                        <thead>
-                            <tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
-                                <th style="padding: 12px; text-align: left; color: #1e3c72;">Match & Venue</th>
-                                <th style="padding: 12px; text-align: left; color: #999; font-size: 0.85em;">Criteria</th>
-                                <th style="padding: 12px; text-align: left; color: #1e3c72;">Team 1</th>
-                                <th style="padding: 12px; text-align: center; color: #1e3c72;">Score</th>
-                                <th style="padding: 12px; text-align: left; color: #1e3c72;">Team 2</th>
-                                <th style="padding: 12px; text-align: left; color: #999; font-size: 0.85em;">Criteria</th>
-                                <th style="padding: 12px; text-align: center; color: #1e3c72;">Watch</th>
-                                <th style="padding: 12px; text-align: center; color: #1e3c72;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="knockout-tbody">
-                        </tbody>
-                    </table>
-                </div>
+                <div id="knockout-rounds"></div>
             </div>
 
             <div id="winners-view" style="display: none;">
@@ -1820,7 +1803,14 @@
         }
 
         function scrollToTodaysKnockoutMatch() {
-            const row = document.querySelector(`#knockout-tbody tr[data-date="${today}"]`);
+            let row = document.querySelector(`#knockout-rounds tr[data-date="${today}"]`);
+            if (!row) {
+                const dated = knockoutStages.filter(m => m.date).sort((a, b) => a.date.localeCompare(b.date));
+                const target = dated.find(m => m.date >= today) || dated[dated.length - 1];
+                if (target) {
+                    row = document.querySelector(`#knockout-rounds tr[data-date="${target.date}"]`);
+                }
+            }
             if (row) {
                 row.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
@@ -1890,8 +1880,45 @@
         }
 
         function renderKnockout() {
-            const tbody = document.getElementById('knockout-tbody');
-            tbody.innerHTML = knockoutStages.map(match => {
+            const container = document.getElementById('knockout-rounds');
+            const rounds = [];
+            knockoutStages.forEach(match => {
+                let round = rounds.find(r => r.stage === match.stage);
+                if (!round) {
+                    round = { stage: match.stage, matches: [] };
+                    rounds.push(round);
+                }
+                round.matches.push(match);
+            });
+
+            container.innerHTML = rounds.map(round => {
+                const rowsHtml = round.matches.map(match => renderKnockoutRow(match)).join('');
+                return `
+                    <div style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding: 16px; margin-bottom: 20px;">
+                        <h3 style="color: #1e3c72; margin: 0 0 12px 0;">${round.stage}</h3>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.95em;">
+                                <thead>
+                                    <tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
+                                        <th style="padding: 12px; text-align: left; color: #1e3c72;">Match & Venue</th>
+                                        <th style="padding: 12px; text-align: left; color: #999; font-size: 0.85em;">Criteria</th>
+                                        <th style="padding: 12px; text-align: left; color: #1e3c72;">Team 1</th>
+                                        <th style="padding: 12px; text-align: center; color: #1e3c72;">Score</th>
+                                        <th style="padding: 12px; text-align: left; color: #1e3c72;">Team 2</th>
+                                        <th style="padding: 12px; text-align: left; color: #999; font-size: 0.85em;">Criteria</th>
+                                        <th style="padding: 12px; text-align: center; color: #1e3c72;">Watch</th>
+                                        <th style="padding: 12px; text-align: center; color: #1e3c72;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${rowsHtml}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderKnockoutRow(match) {
                 const result = results[match.id] || {};
                 const watchLinks = match.channels.map(ch => {
                     const url = channelUrls[ch] || '#';
@@ -1930,7 +1957,6 @@
                         <button onclick="clearResult('${match.id}')" style="padding: 5px 10px; background: #ff6b6b; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Clear</button>
                     </td>
                 </tr>`;
-            }).join('');
         }
 
         function updateResult(matchId, scoreField, value) {
